@@ -35,6 +35,7 @@ def makeUrl(search, start_pg, end_pg):
         print("생성url: ", urls)
         return urls    
 
+      
 # html에서 원하는 속성 추출하는 함수 만들기 (기사, 추출하려는 속성값)
 def news_attrs_crawler(articles,attrs):
     attrs_content=[]
