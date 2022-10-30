@@ -2,10 +2,13 @@
 # from curses import keyname
 from bs4 import BeautifulSoup
 import requests
-import re
-import datetime
+from konlpy.tag import Twitter
+from collections import Counter
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 from tqdm import tqdm
-import sys
+import re
+
 
 
 class News():
@@ -20,6 +23,7 @@ class News():
         self.news_contents =[]
         self.news_dates = []
         self.final_urls = []
+        self.final_datas=[]
         pass
     # 페이지 url 형식에 맞게 바꾸어 주는 함수 만들기
         #입력된 수를 1, 11, 21, 31 ...만들어 주는 함수
@@ -45,7 +49,7 @@ class News():
             urls = []
             for i in range(self.start_pg, self.end_pg + 1):
                 page =News.makePgNum(i)
-                print("page : " ,page)
+                #print("page : " ,page)
                 url = "https://search.naver.com/search.naver?where=news&sm=tab_pge&query=" + search + "&start=" + str(page)+"&sort=1"
                 urls.append(url)
             # print("생성url: ", urls)
@@ -78,7 +82,7 @@ class News():
     def news_main(self,search_keyword):
         url = News.makeUrl(self,search_keyword)
         for i in url:
-            print("i ",i)
+            #print("i ",i)
             tmp_url = News.articles_crawler(self,i)
             self.news_url.append(tmp_url)
 
@@ -92,6 +96,8 @@ class News():
             else:
                 pass
         for i in tqdm(self.final_urls):
+            
+            
             #각 기사 html get하기
             news = requests.get(i,headers=self.headers)
             news_html = BeautifulSoup(news.text,"html.parser")
@@ -128,12 +134,59 @@ class News():
                 news_date = re.sub(pattern=pattern1,repl='',string=str(news_date))
             # 날짜 가져오기
             self.news_dates.append(news_date)
+
+            # 제목 콘텐츠 url 날짜 순으로
+            self.final_datas.append((title,content,i,news_date))
+
     def show(self):
         print('news_title: ',len(self.news_titles))
         print('news_url: ',len(self.final_urls))
         print('news_contents: ',len(self.news_contents))
         print('news_dates: ',len(self.news_dates))
+        print('final datas ',self.final_datas)
+
+    def make_wordcloud(self,word_count):
+        twitter = Twitter()
+    
+        sentences_tag = []
+        #형태소 분석하여 리스트에 넣기
+        for sentence in self.news_titles:
+            #print(sentence)
+            morph = twitter.pos(sentence)
+            sentences_tag.append(morph)
+            #print(morph)
+            #print('-' * 30)
+    
+        # print(sentences_tag)
+        # print('\n' * 3)
+    
+        noun_adj_list = []
+        #명사와 형용사만 구분하여 이스트에 넣기
+        for sentence1 in sentences_tag:
+            for word, tag in sentence1:
+                if tag in ['Noun', 'Adjective']:
+                    noun_adj_list.append(word)
+    
+        #형태소별 count
+        counts = Counter(noun_adj_list)
+        tags = counts.most_common(word_count)
+        print(tags)
+    
+        #wordCloud생성
+        #한글꺠지는 문제 해결하기위해 font_path 지정
+        #
+        wc = WordCloud(font_path='NanumSquareL.ttf', background_color='white', width=800, height=600)
+        print(dict(tags))
+        cloud = wc.generate_from_frequencies(dict(tags))
+        plt.figure(figsize=(10, 8))
+        plt.axis('off')
+        plt.imshow(cloud)
+        #C:\Users\tkddn\OneDrive\바탕 화면\한이음\2022 한이음\영상처리\22_hp061\WebServer\MarineSmartCCTV
+        # 잘처리 됨 적용 요망
+        plt.savefig("../static/images/news/cloud_o.png")
+        # plt.show()
 
 
 
 
+ 
